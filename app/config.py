@@ -12,5 +12,10 @@ class Settings:
     # Pour ton frontend React (à ajuster)
     FRONTEND_ORIGIN: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
+    # MongoDB Configuration
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "formMagique")
+
 
 settings = Settings()
+
