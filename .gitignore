@@ -1,0 +1,26 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env
+
+# IDE related
+.vscode/
+.idea/
+
+# pytest
+.pytest_cache/
+
+# MacOS files
+.DS_Store
+
+# Logs
+*.log
+
+# FastAPI cache
+*.sqlite3
