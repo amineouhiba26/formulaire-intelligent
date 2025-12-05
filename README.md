@@ -1,209 +1,218 @@
-# Formulaire Intelligent - Backend API
+# Smart Form Backend - Nuit de l'Info 2025
 
-Backend FastAPI pour le formulaire dynamique "Le Nexus Connecté" de la Nuit de l'Info 2025.
+Hey there! This is the backend for our intelligent form system built for *Nuit de l'Info 2025*. It's a FastAPI application that uses AI to make forms actually smart and dynamic.
 
-## 🚀 Fonctionnalités
+## What does it do?
 
-- **Classification intelligente** : Détecte automatiquement la mission à partir d'un prompt utilisateur
-- **Génération de formulaires dynamiques** : Crée des champs de formulaire adaptés à chaque mission
-- **Soumission et persistance** : Sauvegarde les soumissions dans MongoDB avec métadonnées
-- **Messages de confirmation personnalisés** : Génère des réponses contextuelles via IA
+Imagine you're visiting a website and you type something like "I'd like to volunteer" in a text box. Instead of giving you a boring, static form, this backend:
 
-## 📋 Prérequis
+1. **Figures out what you want** - It reads your message and understands if you want to contact us, make a donation, volunteer, or just get information
+2. **Builds a custom form** - Based on what you wrote, it creates form fields that make sense for your specific request
+3. **Saves your submission** - Stores everything in MongoDB with metadata
+4. **Sends you a personalized message** - Uses AI to generate a fun, themed confirmation message
 
-- Python 3.8+
-- MongoDB (local ou distant)
-- Clé API Groq (pour l'IA)
+Pretty cool, right?
 
-## 🛠️ Installation
+## The AI Magic
 
-### 1. Créer un environnement virtuel
+We're using **Groq's LLM API** (specifically the Llama 3.3 70B model) to power three main features:
 
-```bash
-python -m venv venv
-source venv/bin/activate  # Sur macOS/Linux
-# ou
-venv\Scripts\activate  # Sur Windows
-```
+### 1. Mission Classification
+When you type something, the AI analyzes it and categorizes your intent into one of four missions:
+- **Contact** - You want to chat or ask a question
+- **Donation** - You're thinking about donating money
+- **Volunteer** - You want to help out and get involved
+- **Information** - You need details about the project
 
-### 2. Installer les dépendances
+The AI doesn't just guess—it gives us a confidence score and explains its reasoning.
 
-```bash
-pip install -r requirements.txt
-```
+### 2. Dynamic Field Generation
+Once we know your mission, the AI looks at what you wrote and generates additional form fields that make sense. For example:
+- If you want to donate, it might add fields for amount and payment method
+- If you're volunteering, it might ask about your skills and availability
+- The base fields (name, email, message) are always there, but the AI adds what's relevant
 
-### 3. Configurer les variables d'environnement
+### 3. Personalized Confirmations
+After you submit the form, the AI generates a custom confirmation message. It's themed around "The Nexus" (our sci-fi adventure vibe), mentions your name, explains what happens next, and keeps things engaging.
 
-Copier le fichier `.env.example` vers `.env` :
+## The APIs
 
-```bash
-cp .env.example .env
-```
+Here's what you can do with our backend:
 
-Puis éditer `.env` avec vos valeurs :
+### `POST /api/classify`
+Send a message, get back what mission it represents.
 
-```env
-GROQ_API_KEY=votre_clé_api_groq
-MONGODB_URL=mongodb://localhost:27017
-MONGODB_DB_NAME=formMagique
-FRONTEND_ORIGIN=http://localhost:5173
-```
-
-### 4. Démarrer MongoDB
-
-Assurez-vous que MongoDB est en cours d'exécution :
-
-```bash
-# Sur macOS avec Homebrew
-brew services start mongodb-community
-
-# Ou directement
-mongod
-```
-
-### 5. Lancer le serveur
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Le serveur sera accessible sur `http://localhost:8000`
-
-## 📚 Documentation API
-
-Une fois le serveur lancé, accédez à :
-
-- **Swagger UI** : http://localhost:8000/docs
-- **ReDoc** : http://localhost:8000/redoc
-
-## 🔌 Endpoints principaux
-
-### 1. Health Check
-```
-GET /health
-```
-Vérifie que le serveur est en ligne.
-
-### 2. Classification de mission
-```
-POST /api/classify
-```
-Détecte la mission à partir d'un prompt utilisateur.
-
-**Body:**
+**Example request:**
 ```json
 {
-  "prompt": "Je voudrais faire un don",
-  "language": "fr"
+  "prompt": "I'd like to make a donation",
+  "language": "en"
 }
 ```
 
-### 3. Génération de formulaire
+**Response:**
+```json
+{
+  "mission": "donation",
+  "confidence": 0.95,
+  "reasoning": "User explicitly mentions wanting to donate"
+}
 ```
-POST /api/generate
-```
-Génère les champs de formulaire pour une mission.
 
-### 4. Soumission de formulaire
-```
-POST /api/submit
-```
-Soumet un formulaire et sauvegarde dans MongoDB.
+### `POST /api/generate-fields`
+Give it a mission and context, get back form fields.
 
-**Body:**
+**Example request:**
+```json
+{
+  "mission": "volunteer",
+  "prompt": "I'm a developer and want to help on weekends",
+  "language": "en"
+}
+```
+
+**Response:**
+```json
+{
+  "mission": "volunteer",
+  "base_fields": [
+    {"name": "name", "label": "Your Name", "type": "text", "required": true},
+    {"name": "email", "label": "Email", "type": "email", "required": true}
+  ],
+  "extra_fields": [
+    {"name": "skills", "label": "Your Skills", "type": "text", "required": false},
+    {"name": "availability", "label": "When are you available?", "type": "select", "options": ["Weekdays", "Weekends", "Flexible"], "required": true}
+  ]
+}
+```
+
+### `POST /api/submit`
+Submit the completed form and get a confirmation.
+
+**Example request:**
 ```json
 {
   "mission": "donation",
   "values": {
-    "nom": "Jean Dupont",
-    "email": "jean@example.com",
-    "montant": 50
+    "name": "Alice",
+    "email": "alice@example.com",
+    "amount": 50
   },
-  "username": "Jean Dupont",
-  "language": "fr"
+  "username": "Alice",
+  "language": "en"
 }
 ```
 
-## 🗄️ Structure MongoDB
+**Response:**
+```json
+{
+  "mission": "donation",
+  "year": 2025,
+  "confirmation_message": "Greetings, Alice! Your generous offering of 50 credits has been received by the Nexus. Your support fuels our mission throughout 2025. Stay connected for updates on how your contribution makes an impact!"
+}
+```
 
-### Collection: `submissions`
+### Other endpoints:
+- `GET /api/submissions` - Retrieve submitted forms (with pagination)
+- `GET /api/submissions/stats` - Get statistics on submissions
+- `DELETE /api/submissions/{id}` - Delete a submission
+- `GET /health` - Check if the server is running
 
-Chaque soumission contient :
-- `mission` : Type de mission (contact, donation, volunteer, information)
-- `values` : Valeurs du formulaire
-- `username` : Nom de l'utilisateur
-- `language` : Langue de soumission
-- `confirmation_message` : Message de confirmation généré
-- `submitted_at` : Timestamp de soumission
-- `ip_address` : Adresse IP de l'utilisateur
-- `user_agent` : User agent du navigateur
+## Rate Limiting
 
-## 🔧 Configuration
+We've added rate limiting to prevent abuse. Each IP address has limits per minute:
+- Classification: 30 requests/min
+- Field generation: 20 requests/min  
+- Form submission: 10 requests/min
+- Fetching submissions: 60 requests/min
 
-### Variables d'environnement
+If you exceed the limit, you'll get a 429 error with headers telling you when you can try again.
 
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `GROQ_API_KEY` | Clé API Groq pour l'IA | - |
-| `MODEL_NAME` | Modèle IA à utiliser | `llama-3.1-70b-versatile` |
-| `APP_ENV` | Environnement (dev/prod) | `dev` |
-| `FRONTEND_ORIGIN` | URL du frontend | `http://localhost:5173` |
-| `MONGODB_URL` | URL de connexion MongoDB | `mongodb://localhost:27017` |
-| `MONGODB_DB_NAME` | Nom de la base de données | `formMagique` |
+## Getting Started
 
-## 🧪 Tests
+**Requirements:**
+- Python 3.8+
+- MongoDB running somewhere
+- A Groq API key ([get one here](https://console.groq.com))
 
-Pour tester l'API, vous pouvez utiliser :
+**Setup:**
 
-1. **Swagger UI** : http://localhost:8000/docs
-2. **cURL** :
+1. Clone and enter the project:
 ```bash
-curl -X POST "http://localhost:8000/api/classify" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Je veux faire un don", "language": "fr"}'
+cd formulaire-intelligent
 ```
 
-## 📦 Structure du projet
-
-```
-formulaire-intelligent/
-├── app/
-│   ├── constants/       # Constantes (missions, champs de base)
-│   ├── routers/         # Routes API
-│   ├── schemas/         # Schémas Pydantic
-│   ├── services/        # Logique métier et services IA
-│   ├── config.py        # Configuration
-│   ├── database.py      # Connexion MongoDB
-│   ├── models.py        # Modèles de données
-│   └── main.py          # Point d'entrée FastAPI
-├── requirements.txt     # Dépendances Python
-├── .env.example         # Template de configuration
-└── README.md           # Ce fichier
-```
-
-## 🚨 Dépannage
-
-### MongoDB ne démarre pas
+2. Create a virtual environment:
 ```bash
-# Vérifier le statut
-brew services list
-
-# Redémarrer MongoDB
-brew services restart mongodb-community
+python -m venv venv
+source venv/bin/activate  # macOS/Linux
 ```
 
-### Erreur de connexion MongoDB
-Vérifiez que :
-1. MongoDB est en cours d'exécution
-2. L'URL dans `.env` est correcte
-3. Le port 27017 n'est pas bloqué
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-### Erreur API Groq
-Vérifiez que :
-1. Votre clé API est valide dans `.env`
-2. Vous avez une connexion Internet
-3. Votre quota API n'est pas dépassé
+4. Create a `.env` file with your credentials:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB_NAME=formMagique
+FRONTEND_ORIGIN=http://localhost:5173
+MODEL_NAME=llama-3.3-70b-versatile
+```
 
-## 📝 Licence
+5. Start MongoDB (if running locally):
+```bash
+brew services start mongodb-community  # macOS
+# or just: mongod
+```
 
-Projet développé pour la Nuit de l'Info 2025.
+6. Run the server:
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Visit `http://localhost:8000/docs` to see the interactive API documentation!
+
+## How It Works Behind the Scenes
+
+1. **User types a message** → Frontend sends it to `/api/classify`
+2. **AI analyzes the text** → Returns mission type with confidence
+3. **Frontend requests form fields** → `/api/generate-fields` creates custom fields
+4. **User fills out the form** → Frontend sends everything to `/api/submit`
+5. **Backend saves to MongoDB** → Stores submission with IP, timestamp, etc.
+6. **AI generates confirmation** → Returns a personalized message
+7. **User sees confirmation** → Frontend displays the response
+
+The whole flow is designed to feel magical—like the form is reading your mind and adapting to what you need.
+
+## Tech Stack
+
+- **FastAPI** - Modern Python web framework
+- **Groq API** - Fast LLM inference (Llama 3.3 70B)
+- **MongoDB + Motor** - Async database operations
+- **Pydantic** - Data validation
+- **SlowAPI** - Rate limiting
+- **CORS enabled** - Works with frontend on different port
+
+## Project Structure
+
+```
+app/
+├── routers/          # API endpoints (classify, generate, submit, submissions)
+├── services/         # Business logic and AI integration
+├── schemas/          # Pydantic models for request/response
+├── constants/        # Mission types and base field definitions
+├── middleware/       # Rate limiting configuration
+├── config.py         # Environment variables
+├── database.py       # MongoDB connection
+├── models.py         # Database models
+└── main.py          # FastAPI app setup
+```
+
+## Why This Matters
+
+Traditional forms are static and boring. You fill out fields that might not even apply to you. This project flips that around—the form adapts to *you*. It's a small example of how AI can make web interactions more human and contextual.
+
+Built with ❤️ for Nuit de l'Info 2025
