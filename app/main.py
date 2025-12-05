@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.routers import classify, generate, submit, submissions
 from app.database import connect_to_mongo, close_mongo_connection
+from app.middleware.rate_limit import limiter
 
 
 app = FastAPI(
@@ -11,6 +14,10 @@ app = FastAPI(
     version="1.0.0",
     description="Backend FastAPI pour formulaire augmenté (missions fixes + champs dynamiques AI).",
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS pour ton frontend (Vite/React)
 origins = [
@@ -49,7 +56,8 @@ app.include_router(submissions.router, prefix="/api")
 
 
 @app.get("/health", tags=["system"])
-def health_check():
+@limiter.limit("100/minute")
+def health_check(request: Request):
     return {"status": "ok", "message": "Nexus backend is alive ✨"}
 
 

@@ -1,15 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.constants.missions import MissionEnum, MISSIONS
 from app.constants.base_fields import BASE_FIELDS_BY_MISSION
 from app.schemas.generate import GenerateFieldsRequest, GenerateFieldsResponse, FormField
 from app.services.ai_logic import generate_additional_fields
+from app.middleware.rate_limit import limiter
 
 router = APIRouter(tags=["ai - fields"])
 
 
 @router.post("/generate-fields", response_model=GenerateFieldsResponse)
-def generate_fields(payload: GenerateFieldsRequest):
+@limiter.limit("20/minute")  # 20 requests per minute per IP
+def generate_fields(request: Request, payload: GenerateFieldsRequest):
     # Validation mission
     try:
         mission_enum = MissionEnum(payload.mission)

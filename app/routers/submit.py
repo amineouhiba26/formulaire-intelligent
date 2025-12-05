@@ -7,12 +7,14 @@ from app.schemas.submit import SubmitRequest, SubmitResponse
 from app.services.ai_logic import generate_confirmation_message
 from app.database import get_database
 from app.models import FormSubmission
+from app.middleware.rate_limit import limiter
 
 router = APIRouter(tags=["ai - submit"])
 
 
 @router.post("/submit", response_model=SubmitResponse)
-async def submit_form(payload: SubmitRequest, request: Request):
+@limiter.limit("10/minute")  # 10 submissions per minute per IP
+async def submit_form(request: Request, payload: SubmitRequest):
     # Validation mission
     try:
         mission_enum = MissionEnum(payload.mission)

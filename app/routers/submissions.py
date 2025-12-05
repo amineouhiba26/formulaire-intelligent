@@ -1,15 +1,18 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from datetime import datetime
 
 from app.database import get_database
 from app.models import FormSubmission
+from app.middleware.rate_limit import limiter
 
 router = APIRouter(tags=["submissions"])
 
 
 @router.get("/submissions", response_model=List[dict])
+@limiter.limit("60/minute")  # 60 requests per minute per IP
 async def get_submissions(
+    request: Request,
     mission: Optional[str] = Query(None, description="Filter by mission type"),
     limit: int = Query(50, ge=1, le=100, description="Number of submissions to return"),
     skip: int = Query(0, ge=0, description="Number of submissions to skip"),
@@ -40,7 +43,8 @@ async def get_submissions(
 
 
 @router.get("/submissions/stats")
-async def get_submission_stats():
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def get_submission_stats(request: Request):
     """
     Get statistics about form submissions.
     
@@ -73,7 +77,8 @@ async def get_submission_stats():
 
 
 @router.delete("/submissions/{submission_id}")
-async def delete_submission(submission_id: str):
+@limiter.limit("20/minute")  # 20 requests per minute per IP
+async def delete_submission(request: Request, submission_id: str):
     """
     Delete a specific submission by ID.
     
